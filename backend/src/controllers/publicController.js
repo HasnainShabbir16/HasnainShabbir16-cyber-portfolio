@@ -7,6 +7,9 @@ import Writeup from '../models/Writeup.js';
 import ProgressItem from '../models/ProgressItem.js';
 import ContactMessage from '../models/ContactMessage.js';
 
+// Escape special regex characters to prevent ReDoS
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 export const getSettings = async (_req, res) => {
   const settings = await SiteSettings.findOne();
   res.json(settings || {});
@@ -19,19 +22,20 @@ export const getAbout = async (_req, res) => {
 
 export const getCategories = async (req, res) => {
   const filter = {};
-  if (req.query.type) filter.type = req.query.type;
+  if (req.query.type) filter.type = String(req.query.type);
   const categories = await Category.find(filter).sort({ order: 1, createdAt: 1 });
   res.json(categories);
 };
 
 export const getProjects = async (req, res) => {
   const filter = {};
-  if (req.query.category) filter.categoryId = req.query.category;
-  if (req.query.tag) filter.tags = req.query.tag;
+  if (req.query.category) filter.categoryId = String(req.query.category);
+  if (req.query.tag) filter.tags = String(req.query.tag);
   if (req.query.search) {
+    const safe = escapeRegex(String(req.query.search).slice(0, 200));
     filter.$or = [
-      { title: { $regex: req.query.search, $options: 'i' } },
-      { description: { $regex: req.query.search, $options: 'i' } },
+      { title: { $regex: safe, $options: 'i' } },
+      { description: { $regex: safe, $options: 'i' } },
     ];
   }
   const projects = await Project.find(filter).populate('categoryId').sort({ order: 1, createdAt: -1 });
@@ -46,15 +50,15 @@ export const getProjectById = async (req, res) => {
 
 export const getCertifications = async (req, res) => {
   const filter = {};
-  if (req.query.category) filter.categoryId = req.query.category;
+  if (req.query.category) filter.categoryId = String(req.query.category);
   const certs = await Certification.find(filter).populate('categoryId').sort({ order: 1, date: -1 });
   res.json(certs);
 };
 
 export const getWriteups = async (req, res) => {
   const filter = { published: true };
-  if (req.query.category) filter.categoryId = req.query.category;
-  if (req.query.difficulty) filter.difficulty = req.query.difficulty;
+  if (req.query.category) filter.categoryId = String(req.query.category);
+  if (req.query.difficulty) filter.difficulty = String(req.query.difficulty);
   const writeups = await Writeup.find(filter).populate('categoryId').sort({ order: 1, createdAt: -1 });
   res.json(writeups);
 };

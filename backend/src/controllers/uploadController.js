@@ -19,19 +19,26 @@ export const uploadImage = async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No file provided' });
 
   const folder = req.query.folder || 'cyber-portfolio';
-  const result = await uploadToCloudinary(req.file.buffer, folder);
-
-  res.status(201).json({
-    url: result.secure_url,
-    publicId: result.public_id,
-  });
+  try {
+    const result = await uploadToCloudinary(req.file.buffer, folder);
+    res.status(201).json({
+      url: result.secure_url,
+      publicId: result.public_id,
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Image upload failed', error: err.message });
+  }
 };
 
 export const deleteImage = async (req, res) => {
   const publicId = decodeURIComponent(req.params.publicId);
-  const result = await cloudinary.uploader.destroy(publicId);
-  if (result.result !== 'ok') {
-    return res.status(400).json({ message: 'Failed to delete image', result });
+  try {
+    const result = await cloudinary.uploader.destroy(publicId);
+    if (result.result !== 'ok') {
+      return res.status(400).json({ message: 'Failed to delete image', result });
+    }
+    res.json({ message: 'Image deleted' });
+  } catch (err) {
+    res.status(500).json({ message: 'Image deletion failed', error: err.message });
   }
-  res.json({ message: 'Image deleted' });
 };
