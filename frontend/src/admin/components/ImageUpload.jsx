@@ -25,9 +25,14 @@ export default function ImageUpload({ currentUrl, onUpload, label = 'Image' }) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Local preview
+    // Local preview — validate it is a safe data:image/ URL before use
     const reader = new FileReader();
-    reader.onload = (ev) => setPreview(ev.target.result);
+    reader.onload = (ev) => {
+      const result = ev.target?.result ?? '';
+      if (typeof result === 'string' && result.startsWith('data:image/')) {
+        setPreview(result);
+      }
+    };
     reader.readAsDataURL(file);
 
     // Upload
