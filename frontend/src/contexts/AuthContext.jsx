@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { adminLogin as apiLogin } from '../api/admin.js';
 
 const AuthContext = createContext(null);
@@ -8,21 +8,25 @@ export function AuthProvider({ children }) {
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const logout = useCallback(() => {
+    localStorage.removeItem('admin_token');
+    setToken(null);
+    setAdmin(null);
+  }, []);
+
   useEffect(() => {
-    if (token) {
-      try {
-        // Decode JWT payload (no library needed for basic info)
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.exp * 1000 > Date.now()) {
-          setAdmin(payload);
-        } else {
-          logout();
-        }
-      } catch {
+    if (!token) return;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp * 1000 > Date.now()) {
+        setAdmin(payload);
+      } else {
         logout();
       }
+    } catch {
+      logout();
     }
-  }, [token]);
+  }, [token, logout]);
 
   const login = async (email, password) => {
     setLoading(true);
@@ -41,12 +45,6 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('admin_token');
-    setToken(null);
-    setAdmin(null);
   };
 
   return (

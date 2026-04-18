@@ -1,8 +1,22 @@
 import { useState, useRef } from 'react';
 import { uploadImage } from '../../api/admin.js';
 
+/** Allow only safe image URL schemes to prevent XSS via javascript: URIs */
+function sanitizeImageUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('data:image/')) return url;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') return url;
+  } catch {
+    // relative paths are fine
+    if (/^\/[\w\-./]/.test(url)) return url;
+  }
+  return '';
+}
+
 export default function ImageUpload({ currentUrl, onUpload, label = 'Image' }) {
-  const [preview, setPreview] = useState(currentUrl || '');
+  const [preview, setPreview] = useState(sanitizeImageUrl(currentUrl));
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const inputRef = useRef(null);
@@ -21,7 +35,7 @@ export default function ImageUpload({ currentUrl, onUpload, label = 'Image' }) {
     setError('');
     try {
       const res = await uploadImage(file);
-      const url = res.data?.url || res.data?.imageUrl || '';
+      const url = sanitizeImageUrl(res.data?.url || res.data?.imageUrl || '');
       setPreview(url || preview);
       onUpload(url);
     } catch (err) {
